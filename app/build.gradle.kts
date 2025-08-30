@@ -99,6 +99,8 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.coil)
+    implementation(libs.coil.network.okhttp)
     ksp(libs.androidx.room.compiler)
 
     // Compose

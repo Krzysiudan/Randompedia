@@ -1,26 +1,29 @@
 package daniluk.randopedia.ui.randomuser
 
 import android.content.res.Configuration
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,6 +31,7 @@ import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import coil3.compose.AsyncImage
 import daniluk.randopedia.R
 import daniluk.randopedia.data.model.User
 import daniluk.randopedia.ui.theme.MyApplicationTheme
@@ -48,7 +52,7 @@ fun UsersListScreen(
         modifier = modifier,
         isRefreshing = isRefreshing,
         onRefresh = { items.refresh() },
-        onBookmarkClicked = { user -> viewModel.onUserClicked(user) },
+        onBookmarkClicked = { user -> viewModel.onBookmarkClicked(user) },
         onUserClick = onUserClick
     )
 }
@@ -63,39 +67,59 @@ internal fun UsersListScreen(
     onBookmarkClicked: (User) -> Unit = {},
     onUserClick: (User) -> Unit = {}
 ) {
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = modifier,
-    ) {
-        LazyColumn {
-            items(items.itemCount) { i ->
-                items[i]?.let { ui ->
-                    val user = ui.user
-                    val isBookmarked = ui.isBookmarked
-                    ListItem(
-                        headlineContent = { Text(user.fullName) },
-                        supportingContent = { Text("${user.city}, ${user.country}") },
-                        trailingContent = { IconButton(onClick = {
-                            // Persist whole user into Room DB on item click via callback
-                            onBookmarkClicked(user)
-                        })  {
-                            Icon(
-                                imageVector = Icons.Outlined.Favorite,
-                                contentDescription = null,
-                                modifier = Modifier,
-                                tint = if (isBookmarked) Color.Red else colorResource(R.color.black)
-                            )
-                        }},
-                        modifier = Modifier.clickable { onUserClick(user) }
-                    )
-                    Divider()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Users") }
+            )
+        }
+    ) { paddingValues ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = modifier.padding(paddingValues),
+        ) {
+            LazyColumn {
+                items(items.itemCount) { i ->
+                    items[i]?.let { ui ->
+                        val user = ui.user
+                        ListItem(
+                            leadingContent = {
+                                AsyncImage(
+                                    model = user.avatarUrl,
+                                    contentDescription = "Avatar",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                )
+                            },
+                            headlineContent = { Text(user.fullName) },
+                            supportingContent = { Text("${user.city}, ${user.country}") },
+                            trailingContent = {
+                                IconButton(onClick = {
+                                    onBookmarkClicked(user)
+                                }) {
+                                    Icon(
+                                        painter = if (ui.isBookmarked) painterResource(R.drawable.ic_bookmark_filled) else painterResource(
+                                            R.drawable.ic_bookmark
+                                        ),
+                                        tint = if (ui.isBookmarked) Color.Red else colorResource(R.color.black),
+                                        contentDescription = "Bookmark",
+                                    )
+
+                                }
+                            },
+                            modifier = Modifier.clickable { onUserClick(user) }
+                        )
+                        Divider()
+                    }
                 }
-            }
-            when (val s = items.loadState.append) {
-                is LoadState.Loading -> item { CircularProgressIndicator(Modifier.padding(16.dp)) }
-                is LoadState.Error -> item { Text("Load more failed: ${s.error.localizedMessage}") }
-                else -> Unit
+                when (val s = items.loadState.append) {
+                    is LoadState.Loading -> item { CircularProgressIndicator(Modifier.padding(16.dp)) }
+                    is LoadState.Error -> item { Text("Load more failed: ${s.error.localizedMessage}") }
+                    else -> Unit
+                }
             }
         }
     }

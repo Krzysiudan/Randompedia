@@ -10,17 +10,11 @@ import androidx.paging.map
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import daniluk.randopedia.data.RandomUserRepository
 import daniluk.randopedia.data.model.User
-import daniluk.randopedia.ui.randomuser.RandomUserUiState.Error
-import daniluk.randopedia.ui.randomuser.RandomUserUiState.Loading
-import daniluk.randopedia.ui.randomuser.RandomUserUiState.Success
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
@@ -49,7 +43,7 @@ class RandomUserViewModel @Inject constructor(
                 paging.map { user -> UserUiModel(user = user, isBookmarked = ids.contains(user.id)) }
             }
 
-    fun onUserClicked(user: User) = viewModelScope.launch {
+    fun onBookmarkClicked(user: User) = viewModelScope.launch {
         runCatching { randomUserRepository.add(user) }
             .onFailure { /* TODO: surface error */ }
     }
