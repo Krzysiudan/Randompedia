@@ -44,8 +44,15 @@ class RandomUserViewModel @Inject constructor(
             }
 
     fun onBookmarkClicked(user: User) = viewModelScope.launch {
-        runCatching { randomUserRepository.add(user) }
-            .onFailure { /* TODO: surface error */ }
+        // TODO: Maybe it needs some refactor so that the info about bookmark comes from the ui?
+        val isBookmarked = bookmarkedIds.value.contains(user.id)
+        runCatching {
+            if (isBookmarked) {
+                randomUserRepository.removeById(user.id)
+            } else {
+                randomUserRepository.add(user)
+            }
+        }.onFailure { /* TODO: surface error */ }
     }
 
 }
