@@ -20,26 +20,37 @@ import daniluk.randopedia.data.RandomUserRepository
 @OptIn(ExperimentalCoroutinesApi::class) // TODO: Remove when stable
 class RandomUserViewModelTest {
     @Test
-    fun uiState_initiallyLoading() = runTest {
-        val viewModel = RandomUserViewModel(FakeRandomUserRepository())
-        assertEquals(viewModel.uiState.first(), RandomUserUiState.Loading)
-    }
-
-    @Test
-    fun uiState_onItemSaved_isDisplayed() = runTest {
-        val viewModel = RandomUserViewModel(FakeRandomUserRepository())
-        assertEquals(viewModel.uiState.first(), RandomUserUiState.Loading)
+    fun onUserClicked_insertsWithoutError() = runTest {
+        val repo = FakeRandomUserRepository()
+        val viewModel = RandomUserViewModel(repo)
+        viewModel.onUserClicked(
+            daniluk.randopedia.data.model.User(
+                id = "1",
+                fullName = "John Doe",
+                email = "john@example.com",
+                country = "USA",
+                city = "NYC",
+                age = 30,
+                avatarUrl = "",
+                photoUrl = ""
+            )
+        )
+        assertEquals(1, repo.savedUsers.size)
     }
 }
 
 private class FakeRandomUserRepository : RandomUserRepository {
 
-    private val data = mutableListOf<String>()
+    val savedUsers = mutableListOf<daniluk.randopedia.data.model.User>()
 
-    override val randomUsers: Flow<List<String>>
-        get() = flow { emit(data.toList()) }
+    override suspend fun fetchPage(page: Int): List<daniluk.randopedia.data.model.User> = emptyList()
 
-    override suspend fun add(name: String) {
-        data.add(0, name)
+    override fun pager(): androidx.paging.Pager<Int, daniluk.randopedia.data.model.User> =
+        androidx.paging.Pager(config = androidx.paging.PagingConfig(pageSize = 1)) { error("not used") }
+
+    override suspend fun add(name: String) {}
+
+    override suspend fun add(user: daniluk.randopedia.data.model.User) {
+        savedUsers.add(user)
     }
 }

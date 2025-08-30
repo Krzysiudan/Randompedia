@@ -1,5 +1,6 @@
 package daniluk.randopedia.data.di
 
+import androidx.paging.Pager
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import daniluk.randopedia.data.RandomUserRepository
 import daniluk.randopedia.data.DefaultRandomUserRepository
+import daniluk.randopedia.data.model.User
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,9 +25,12 @@ interface DataModule {
 }
 
 class FakeRandomUserRepository @Inject constructor() : RandomUserRepository {
-    override val randomUsers: Flow<List<String>> = flowOf(fakeRandomUsers)
 
-    override suspend fun add(name: String) {
+    override fun pager(): Pager<Int, User> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun add(user: User) {
         throw NotImplementedError()
     }
 }

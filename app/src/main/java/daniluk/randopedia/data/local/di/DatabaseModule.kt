@@ -29,6 +29,9 @@ class DatabaseModule {
             appContext,
             AppDatabase::class.java,
             "RandomUser"
-        ).build()
+        )
+            // We can safely drop/refresh local cache when schema changes
+            .fallbackToDestructiveMigration()
+            .build()
     }
 }

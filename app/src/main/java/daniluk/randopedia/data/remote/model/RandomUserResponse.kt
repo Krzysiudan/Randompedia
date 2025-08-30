@@ -2,31 +2,32 @@ package daniluk.randopedia.data.remote.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+@Serializable
+data class RandomUserResponse(val results: List<UserDto>, val info: InfoDto)
+
+@Serializable data class InfoDto(val seed: String? = null, val results: Int? = null, val page: Int? = null, val version: String? = null)
 
 @Serializable
-data class RandomUserResponse(
-    @SerialName("results") val results: List<Result> = emptyList(),
-    @SerialName("info") val info: Info? = null
-) {
-    @Serializable
-    data class Result(
-        @SerialName("gender") val gender: String? = null,
-        @SerialName("name") val name: Name? = null,
-        @SerialName("nat") val nat: String? = null
-    )
+data class UserDto(
+    val gender: String? = null,
+    val name: NameDto,
+    val location: LocationDto,
+    val email: String,
+    val login: LoginDto,
+    val dob: DobDto,
+    val phone: String? = null,
+    val cell: String? = null,
+    val picture: PictureDto,
+    val nat: String? = null
+)
 
-    @Serializable
-    data class Name(
-        @SerialName("title") val title: String? = null,
-        @SerialName("first") val first: String? = null,
-        @SerialName("last") val last: String? = null
-    )
-
-    @Serializable
-    data class Info(
-        @SerialName("seed") val seed: String? = null,
-        @SerialName("results") val results: Int? = null,
-        @SerialName("page") val page: Int? = null,
-        @SerialName("version") val version: String? = null
-    )
-}
+@Serializable data class NameDto(val title: String? = null, val first: String, val last: String)
+@Serializable
+data class LocationDto(
+    val city: String, val state: String? = null, val country: String,
+    val street: StreetDto? = null, val postcode: kotlinx.serialization.json.JsonElement? = null
+)
+@Serializable data class StreetDto(val number: Int? = null, val name: String? = null)
+@Serializable data class LoginDto(val uuid: String)
+@Serializable data class DobDto(val date: String, val age: Int)
+@Serializable data class PictureDto(val large: String, val medium: String, val thumbnail: String)

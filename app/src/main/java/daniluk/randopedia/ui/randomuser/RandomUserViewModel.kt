@@ -4,17 +4,24 @@ package daniluk.randopedia.ui.randomuser
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.map
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import daniluk.randopedia.data.RandomUserRepository
+import daniluk.randopedia.data.model.User
 import daniluk.randopedia.ui.randomuser.RandomUserUiState.Error
 import daniluk.randopedia.ui.randomuser.RandomUserUiState.Loading
 import daniluk.randopedia.ui.randomuser.RandomUserUiState.Success
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 @HiltViewModel
@@ -22,16 +29,31 @@ class RandomUserViewModel @Inject constructor(
     private val randomUserRepository: RandomUserRepository
 ) : ViewModel() {
 
-    val uiState: StateFlow<RandomUserUiState> = randomUserRepository
-        .randomUsers.map<List<String>, RandomUserUiState>(::Success)
-        .catch { emit(Error(it)) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Loading)
+    // 1) Build the base paging flow ONCE and cache it in the VM
+    private val basePaging: Flow<PagingData<User>> =
+        randomUserRepository.pager().flow.cachedIn(viewModelScope)
 
-    fun addRandomUser(name: String) {
-        viewModelScope.launch {
-            randomUserRepository.add(name)
-        }
+    // Flow of bookmarked ids to be overlaid on UI
+    val bookmarkedIds: StateFlow<Set<String>> =
+        randomUserRepository
+            .bookmarkedIds()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptySet()
+            )
+
+    // UI Paging flow with bookmark state embedded
+    val uiPagingFlow: kotlinx.coroutines.flow.Flow<PagingData<UserUiModel>> =basePaging
+            .combine(bookmarkedIds) { paging, ids ->
+                paging.map { user -> UserUiModel(user = user, isBookmarked = ids.contains(user.id)) }
+            }
+
+    fun onUserClicked(user: User) = viewModelScope.launch {
+        runCatching { randomUserRepository.add(user) }
+            .onFailure { /* TODO: surface error */ }
     }
+
 }
 
 sealed interface RandomUserUiState {

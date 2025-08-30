@@ -4,24 +4,47 @@ package daniluk.randopedia.data.local.database
 
 import androidx.room.Dao
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
-@Entity
+/**
+ * Room entity mirroring the displayed User model so we can persist the whole item on click.
+ * Add a unique index on the business id to prevent duplicates and enable bookmark semantics.
+ */
+@Entity(indices = [Index(value = ["id"], unique = true)])
 data class RandomUser(
-    val name: String
-) {
-    @PrimaryKey(autoGenerate = true)
-    var uid: Int = 0
-}
+    @PrimaryKey(autoGenerate = true) val uid: Int = 0,
+    val id: String,
+    val fullName: String,
+    val email: String,
+    val country: String,
+    val city: String,
+    val age: Int,
+    val avatarUrl: String,
+    val photoUrl: String
+)
 
 @Dao
 interface RandomUserDao {
+    // Existing sample, not used by new flow but keep for compatibility
     @Query("SELECT * FROM randomuser ORDER BY uid DESC LIMIT 10")
     fun getRandomUsers(): Flow<List<RandomUser>>
 
-    @Insert
+    // Flow of all bookmarks (full snapshot)
+    @Query("SELECT * FROM randomuser ORDER BY uid DESC")
+    fun getAllBookmarks(): Flow<List<RandomUser>>
+
+    // Flow of bookmarked IDs to overlay on the network-only paging list
+    @Query("SELECT id FROM randomuser")
+    fun getBookmarkedIds(): Flow<List<String>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRandomUser(item: RandomUser)
+
+    @Query("DELETE FROM randomuser WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
