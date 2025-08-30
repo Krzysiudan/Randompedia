@@ -34,10 +34,6 @@ interface RandomUserDao {
     @Query("SELECT * FROM randomuser ORDER BY uid DESC LIMIT 10")
     fun getRandomUsers(): Flow<List<RandomUser>>
 
-    // Flow of all bookmarks (full snapshot)
-    @Query("SELECT * FROM randomuser ORDER BY uid DESC")
-    fun getAllBookmarks(): Flow<List<RandomUser>>
-
     // Flow of bookmarked IDs to overlay on the network-only paging list
     @Query("SELECT id FROM randomuser")
     fun getBookmarkedIds(): Flow<List<String>>

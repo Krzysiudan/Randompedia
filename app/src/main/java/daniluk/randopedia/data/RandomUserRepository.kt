@@ -22,7 +22,6 @@ interface RandomUserRepository {
 
     // Bookmarks overlays/flows (defaults keep binary compatibility for tests)
     fun bookmarkedIds(): Flow<Set<String>> = kotlinx.coroutines.flow.flowOf(emptySet())
-    fun bookmarks(): Flow<List<User>> = kotlinx.coroutines.flow.flowOf(emptyList())
     suspend fun removeById(id: String) {}
 }
 
@@ -53,22 +52,6 @@ class DefaultRandomUserRepository @Inject constructor(
 
     override fun bookmarkedIds(): Flow<Set<String>> =
         randomUserDao.getBookmarkedIds().map { it.toSet() }
-
-    override fun bookmarks(): Flow<List<User>> =
-        randomUserDao.getAllBookmarks().map { list ->
-            list.map {
-                User(
-                    id = it.id,
-                    fullName = it.fullName,
-                    email = it.email,
-                    country = it.country,
-                    city = it.city,
-                    age = it.age,
-                    avatarUrl = it.avatarUrl,
-                    photoUrl = it.photoUrl
-                )
-            }
-        }
 
     override suspend fun removeById(id: String) {
         randomUserDao.deleteById(id)

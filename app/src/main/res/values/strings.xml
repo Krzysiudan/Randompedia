@@ -1,5 +1,7 @@
 
 
 <resources>
-    <string name="app_name">Randopedia</string>
+    <string name="app_name">Randompedia</string>
+    <string name="wikipedia_for_random_users">Wikipedia for random users</string>
+    <string name="get_started">Get started</string>
 </resources>

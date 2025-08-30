@@ -53,10 +53,6 @@ private class FakeRandomUserDao : RandomUserDao {
         emit(data)
     }
 
-    override fun getAllBookmarks(): Flow<List<RandomUser>> = flow {
-        emit(data)
-    }
-
     override fun getBookmarkedIds(): Flow<List<String>> = flow {
         emit(data.map { it.id })
     }

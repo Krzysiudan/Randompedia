@@ -4,14 +4,11 @@ import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,8 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -52,24 +49,27 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.material3.TopAppBarDefaults.enterAlwaysScrollBehavior
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UsersListScreen(
-    modifier: Modifier = Modifier,
     viewModel: RandomUserViewModel = hiltViewModel(),
-    onUserClick: (User) -> Unit = {}
+    onUserClick: (User) -> Unit = {},
+    onBack: () -> Unit = {}
 ) {
     val items = viewModel.uiPagingFlow.collectAsLazyPagingItems()
     val isRefreshing = items.loadState.refresh is LoadState.Loading
 
     UsersListScreen(
         items = items,
-        modifier = modifier,
         isRefreshing = isRefreshing,
         onRefresh = { items.refresh() },
         onBookmarkClicked = { user -> viewModel.onBookmarkClicked(user) },
-        onUserClick = onUserClick
+        onUserClick = onUserClick,
+        onBack = onBack
     )
 }
 
@@ -81,19 +81,32 @@ internal fun UsersListScreen(
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     onBookmarkClicked: (User) -> Unit = {},
-    onUserClick: (User) -> Unit = {}
+    onUserClick: (User) -> Unit = {},
+    onBack: () -> Unit = {}
 ) {
+    val scrollBehavior = enterAlwaysScrollBehavior()
+
     Scaffold(
+        modifier = modifier.then(Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)),
         topBar = {
             TopAppBar(
-                title = { Text("Users") }
+                title = { Text("Users") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior
             )
         }
     ) { paddingValues ->
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = onRefresh,
-            modifier = modifier.padding(paddingValues),
+            modifier = Modifier.padding(paddingValues),
         ) {
             val showSkeleton = (items.loadState.refresh is LoadState.Loading || isRefreshing) && items.itemCount == 0
             LazyColumn {
@@ -105,36 +118,7 @@ internal fun UsersListScreen(
                 } else {
                     items(items.itemCount) { i ->
                         items[i]?.let { ui ->
-                            val user = ui.user
-                            ListItem(
-                                leadingContent = {
-                                    AsyncImage(
-                                        model = user.avatarUrl,
-                                        contentDescription = "Avatar",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                    )
-                                },
-                                headlineContent = { Text(user.fullName) },
-                                supportingContent = { Text("${user.city}, ${user.country}") },
-                                trailingContent = {
-                                    IconButton(onClick = {
-                                        onBookmarkClicked(user)
-                                    }) {
-                                        Icon(
-                                            painter = if (ui.isBookmarked) painterResource(R.drawable.ic_bookmark_filled) else painterResource(
-                                                R.drawable.ic_bookmark
-                                            ),
-                                            tint = if (ui.isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            contentDescription = "Bookmark",
-                                        )
-
-                                    }
-                                },
-                                modifier = Modifier.clickable { onUserClick(user) }
-                            )
+                            UserListItem(ui.user, onBookmarkClicked, ui, onUserClick)
                             Divider()
                         }
                     }
@@ -147,6 +131,44 @@ internal fun UsersListScreen(
             }
         }
     }
+}
+
+@Composable
+private fun UserListItem(
+    user: User,
+    onBookmarkClicked: (User) -> Unit,
+    ui: UserUiModel,
+    onUserClick: (User) -> Unit
+) {
+    ListItem(
+        leadingContent = {
+            AsyncImage(
+                model = user.avatarUrl,
+                contentDescription = "Avatar",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+            )
+        },
+        headlineContent = { Text(user.fullName) },
+        supportingContent = { Text("${user.city}, ${user.country}") },
+        trailingContent = {
+            IconButton(onClick = {
+                onBookmarkClicked(user)
+            }) {
+                Icon(
+                    painter = if (ui.isBookmarked) painterResource(R.drawable.ic_bookmark_filled) else painterResource(
+                        R.drawable.ic_bookmark
+                    ),
+                    tint = if (ui.isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    contentDescription = "Bookmark",
+                )
+
+            }
+        },
+        modifier = Modifier.clickable { onUserClick(user) }
+    )
 }
 
 

@@ -1,4 +1,4 @@
-package daniluk.randopedia.ui.randomuser
+package daniluk.randopedia.ui.details
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package daniluk.randopedia.ui.randomuser
+package daniluk.randopedia.ui.details
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Place
@@ -36,6 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -108,7 +109,8 @@ fun UserDetailsScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(Modifier.height(24.dp))
@@ -117,7 +119,7 @@ fun UserDetailsScreen(
             Box(contentAlignment = Alignment.BottomEnd) {
                 // Provide placeholder and error painters for better UX during loading/failure
                 val placeholderPainter =
-                    androidx.compose.ui.graphics.vector.rememberVectorPainter(Icons.Outlined.AccountCircle)
+                    rememberVectorPainter(Icons.Outlined.AccountCircle)
                 AsyncImage(
                     model = ui.photoUrl,
                     contentDescription = "User avatar",
@@ -173,7 +175,7 @@ fun UserDetailsScreen(
 
 @Composable
 private fun DetailRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String,
 ) {
     Row(
