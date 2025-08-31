@@ -21,6 +21,7 @@ data class RandomUser(
     val id: String,
     val fullName: String,
     val email: String,
+    val phone: String,
     val country: String,
     val city: String,
     val age: Int,
@@ -30,7 +31,7 @@ data class RandomUser(
 
 @Dao
 interface RandomUserDao {
-    @Query("SELECT * FROM randomuser ORDER BY uid DESC LIMIT 10")
+    @Query("SELECT * FROM randomuser ORDER BY uid DESC")
     fun getRandomUsers(): Flow<List<RandomUser>>
 
     // Flow of bookmarked IDs to overlay on the network-only paging list

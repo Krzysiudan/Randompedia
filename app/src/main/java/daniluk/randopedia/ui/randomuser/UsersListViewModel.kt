@@ -43,16 +43,20 @@ class UsersListViewModel @Inject constructor(
                 paging.map { user -> UserUiModel(user = user, isBookmarked = ids.contains(user.id)) }
             }
 
-    fun onBookmarkClicked(user: User) = viewModelScope.launch {
+    fun onBookmarkClicked(user: User) {
         // TODO: Maybe it needs some refactor so that the info about bookmark comes from the ui?
         val isBookmarked = bookmarkedIds.value.contains(user.id)
-        runCatching {
-            if (isBookmarked) {
-                randomUserRepository.removeById(user.id)
-            } else {
-                randomUserRepository.add(user)
+        try {
+            kotlinx.coroutines.runBlocking {
+                if (isBookmarked) {
+                    randomUserRepository.removeById(user.id)
+                } else {
+                    randomUserRepository.add(user)
+                }
             }
-        }.onFailure { /* TODO: surface error */ }
+        } catch (_: Throwable) {
+            // TODO: surface error
+        }
     }
 
 }

@@ -1,6 +1,5 @@
 package daniluk.randopedia.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,7 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,12 +38,14 @@ fun StartScreen(onStart: () -> Unit = {}) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             val composition by rememberLottieComposition(
-                LottieCompositionSpec.RawRes(R.raw.lucky_spin)   // my_anim.lottie in res/raw
+                LottieCompositionSpec.RawRes(R.raw.lucky_spin)
             )
             LottieAnimation(
                 composition = composition,
                 iterations = LottieConstants.IterateForever,
-                modifier = Modifier.size(160.dp).clip(RoundedCornerShape(32.dp))
+                modifier = Modifier
+                    .size(160.dp)
+                    .clip(RoundedCornerShape(32.dp))
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(

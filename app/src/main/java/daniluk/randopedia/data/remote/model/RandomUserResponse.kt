@@ -15,7 +15,7 @@ data class UserDto(
     val email: String,
     val login: LoginDto,
     val dob: DobDto,
-    val phone: String? = null,
+    val phone: String,
     val cell: String? = null,
     val picture: PictureDto,
     val nat: String? = null

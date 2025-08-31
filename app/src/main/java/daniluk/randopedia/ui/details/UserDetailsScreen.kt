@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -50,6 +51,7 @@ import daniluk.randopedia.ui.theme.MyApplicationTheme
 data class UserDetailsUi(
     val photoUrl: String,
     val name: String,
+    val email: String,
     val phone: String,
     val address: String,
     val isBookmarked: Boolean
@@ -166,6 +168,11 @@ fun UserDetailsScreen(
             )
             Spacer(Modifier.height(12.dp))
             DetailRow(
+                icon = Icons.Outlined.Email,
+                text = ui.email
+            )
+            Spacer(Modifier.height(12.dp))
+            DetailRow(
                 icon = Icons.Outlined.Place,
                 text = ui.address
             )
@@ -206,6 +213,7 @@ private fun sampleUi(bookmarked: Boolean) = UserDetailsUi(
     name = "Floyd Miles",
     phone = "(319) 555-0115",
     address = "4517 Washington Ave. Manchester,\nKentucky 39495",
+    email = "john.c.calhoun@examplepetstore.com",
     isBookmarked = bookmarked
 )
 

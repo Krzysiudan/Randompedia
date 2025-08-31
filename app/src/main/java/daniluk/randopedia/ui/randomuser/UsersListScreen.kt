@@ -25,6 +25,10 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -55,23 +59,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.TopAppBarDefaults.enterAlwaysScrollBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.ui.Alignment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UsersListScreen(
     viewModel: UsersListViewModel = hiltViewModel(),
+    bookmarksViewModel: daniluk.randopedia.ui.bookmarks.BookmarksViewModel = hiltViewModel(),
     onUserClick: (User) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     val items = viewModel.uiPagingFlow.collectAsLazyPagingItems()
     val isRefreshing = items.loadState.refresh is LoadState.Loading
+    val bookmarkedUsers = bookmarksViewModel.users.collectAsState().value
 
     UsersListScreen(
         items = items,
+        bookmarks = bookmarkedUsers,
         isRefreshing = isRefreshing,
         onRefresh = { items.refresh() },
         onBookmarkClicked = { user -> viewModel.onBookmarkClicked(user) },
+        onBookmarksClicked = { user -> bookmarksViewModel.onBookmarkClicked(user) },
         onUserClick = onUserClick,
         onBack = onBack
     )
@@ -81,10 +91,12 @@ fun UsersListScreen(
 @Composable
 internal fun UsersListScreen(
     items: LazyPagingItems<UserUiModel>,
+    bookmarks: List<User> = emptyList(),
     modifier: Modifier = Modifier,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     onBookmarkClicked: (User) -> Unit = {},
+    onBookmarksClicked: (User) -> Unit = {},
     onUserClick: (User) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
@@ -107,47 +119,78 @@ internal fun UsersListScreen(
             )
         }
     ) { paddingValues ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = onRefresh,
-            modifier = Modifier.padding(paddingValues),
-        ) {
-            val showSkeleton = (items.loadState.refresh is LoadState.Loading || isRefreshing) && items.itemCount == 0
-            val isError = (items.loadState.refresh is LoadState.Error) && items.itemCount == 0
+        Column(modifier = Modifier.padding(paddingValues)) {
+            // Tabs: Users | Bookmarks
+            var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+            TabRow(selectedTabIndex = selectedTab) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text("All") }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = { Text("Bookmarks") }
+                )
+            }
 
+            if (selectedTab == 0) {
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefresh,
+                    modifier = Modifier
+                ) {
+                    val showSkeleton = (items.loadState.refresh is LoadState.Loading || isRefreshing) && items.itemCount == 0
+                    val isError = (items.loadState.refresh is LoadState.Error) && items.itemCount == 0
 
-                LazyColumn {
-                    when {
-                        isError -> {
-                            val errorMessage = (items.loadState.append as? LoadState.Error)?.error?.localizedMessage
-                            item { ErrorPlaceholder(errorMessage) }
-                        }
-                        showSkeleton -> {
-                            items(8) {
-                                SkeletonUserListItem()
-                                Divider()
+                    LazyColumn {
+                        when {
+                            isError -> {
+                                val errorMessage = (items.loadState.append as? LoadState.Error)?.error?.localizedMessage
+                                item { ErrorPlaceholder(errorMessage) }
                             }
-                        }
-                        else -> {
-                            items(items.itemCount) { i ->
-                                items[i]?.let { ui ->
-                                    UserListItem(ui.user, onBookmarkClicked, ui, onUserClick)
+                            showSkeleton -> {
+                                items(8) {
+                                    SkeletonUserListItem()
                                     Divider()
                                 }
                             }
-                            when (val s = items.loadState.append) {
-                                is LoadState.Loading -> item { CircularProgressIndicator(Modifier.padding(16.dp).align(Alignment.Center)) }
-                                else -> Unit
+                            else -> {
+                                items(items.itemCount) { i ->
+                                    items[i]?.let { ui ->
+                                        UserListItem(ui.user, onBookmarkClicked, ui, onUserClick)
+                                        Divider()
+                                    }
+                                }
+                                when (val s = items.loadState.append) {
+                                    is LoadState.Loading -> item { CircularProgressIndicator(Modifier.padding(16.dp).align(Alignment.Center)) }
+                                    else -> Unit
+                                }
                             }
                         }
                     }
+                }
+            } else {
+                LazyColumn {
+                    items(bookmarks.size) { i ->
+                        val user = bookmarks[i]
+                        UserListItem(
+                            user = user,
+                            onBookmarkClicked = { onBookmarksClicked(user) },
+                            ui = UserUiModel(user = user, isBookmarked = true),
+                            onUserClick = onUserClick
+                        )
+                        Divider()
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun UserListItem(
+fun UserListItem(
     user: User,
     onBookmarkClicked: (User) -> Unit,
     ui: UserUiModel,
@@ -240,13 +283,13 @@ private fun sampleUsers(count: Int = 5): List<User> =
             email = "john.doe$i@example.com",
             country = "USA",
             city = "New York",
+            phone = "(123) 456-7890",
             age = 30 + (i % 7),
             avatarUrl = "https://randomuser.me/api/portraits/thumb/men/${(i % 90)}.jpg",
             photoUrl = "https://randomuser.me/api/portraits/men/${(i % 90)}.jpg"
         )
     }
-
-private fun sampleUiUsers(count: Int = 5): List<UserUiModel> =
+ fun sampleUiUsers(count: Int = 5): List<UserUiModel> =
     sampleUsers(count).mapIndexed { i, u -> UserUiModel(user = u, isBookmarked = (i % 2 == 0)) }
 
 /**

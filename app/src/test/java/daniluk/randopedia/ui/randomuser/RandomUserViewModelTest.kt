@@ -5,6 +5,7 @@ package daniluk.randopedia.ui.randomuser
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import daniluk.randopedia.data.RandomUserRepository
@@ -32,6 +33,7 @@ class RandomUserViewModelTest {
                 photoUrl = ""
             )
         )
+        runCurrent()
         assertEquals(1, repo.savedUsers.size)
     }
 }
@@ -46,4 +48,12 @@ private class FakeRandomUserRepository : RandomUserRepository {
     override suspend fun add(user: daniluk.randopedia.data.model.User) {
         savedUsers.add(user)
     }
+
+    override fun bookmarkedIds(): kotlinx.coroutines.flow.Flow<Set<String>> = kotlinx.coroutines.flow.flowOf(savedUsers.map { it.id }.toSet())
+
+    override suspend fun removeById(id: String) {
+        savedUsers.removeAll { it.id == id }
+    }
+
+    override fun bookmarkedUsers(): kotlinx.coroutines.flow.Flow<List<daniluk.randopedia.data.model.User>> = kotlinx.coroutines.flow.flowOf(savedUsers.toList())
 }

@@ -11,6 +11,7 @@ data class User(
     val country: String,
     val city: String,
     val age: Int,
+    val phone: String,
     val avatarUrl: String,
     val photoUrl: String
 )
@@ -22,6 +23,7 @@ fun UserDto.toDomain() = User(
     country = location.country,
     city = location.city,
     age = dob.age,
+    phone = phone,
     avatarUrl = picture.thumbnail,
     photoUrl = picture.large
 )

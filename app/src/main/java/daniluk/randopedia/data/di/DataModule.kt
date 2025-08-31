@@ -33,6 +33,12 @@ class FakeRandomUserRepository @Inject constructor() : RandomUserRepository {
     override suspend fun add(user: User) {
         throw NotImplementedError()
     }
+
+    override fun bookmarkedIds(): Flow<Set<String>> = flowOf(emptySet())
+
+    override suspend fun removeById(id: String) { /* no-op */ }
+
+    override fun bookmarkedUsers(): Flow<List<User>> = flowOf(emptyList())
 }
 
 val fakeRandomUsers = listOf("One", "Two", "Three")

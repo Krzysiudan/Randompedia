@@ -18,8 +18,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Enable edge-to-edge to draw behind system bars with proper luminance-based icon handling
         enableEdgeToEdge()
+
         setContent {
             MyApplicationTheme {
                 Surface(

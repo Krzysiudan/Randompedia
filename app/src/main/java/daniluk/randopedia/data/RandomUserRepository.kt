@@ -11,6 +11,7 @@ import daniluk.randopedia.data.remote.PagingUsersSource
 import daniluk.randopedia.data.remote.api.RandomUserApi
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 interface RandomUserRepository {
@@ -21,8 +22,11 @@ interface RandomUserRepository {
     suspend fun add(user: User)
 
     // Bookmarks overlays/flows (defaults keep binary compatibility for tests)
-    fun bookmarkedIds(): Flow<Set<String>> = kotlinx.coroutines.flow.flowOf(emptySet())
-    suspend fun removeById(id: String) {}
+    fun bookmarkedIds(): Flow<Set<String>> = flowOf(emptySet())
+    suspend fun removeById(id: String)
+
+    // Full list of bookmarked users
+    fun bookmarkedUsers(): Flow<List<User>> = flowOf(emptyList())
 }
 
 class DefaultRandomUserRepository @Inject constructor(
@@ -45,7 +49,8 @@ class DefaultRandomUserRepository @Inject constructor(
                 city = user.city,
                 age = user.age,
                 avatarUrl = user.avatarUrl,
-                photoUrl = user.photoUrl
+                photoUrl = user.photoUrl,
+                phone = user.phone
             )
         )
     }
@@ -56,4 +61,21 @@ class DefaultRandomUserRepository @Inject constructor(
     override suspend fun removeById(id: String) {
         randomUserDao.deleteById(id)
     }
+
+    override fun bookmarkedUsers(): Flow<List<User>> =
+        randomUserDao.getRandomUsers().map { list ->
+            list.map { e ->
+                User(
+                    id = e.id,
+                    fullName = e.fullName,
+                    email = e.email,
+                    country = e.country,
+                    city = e.city,
+                    age = e.age,
+                    avatarUrl = e.avatarUrl,
+                    photoUrl = e.photoUrl,
+                    phone = e.phone
+                )
+            }
+        }
 }
