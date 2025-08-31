@@ -10,7 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import daniluk.randopedia.data.local.database.AppDatabase
-import daniluk.randopedia.data.local.database.RandomUserDao
+import daniluk.randopedia.data.local.database.BookmarkedUserDao
 import javax.inject.Singleton
 
 
@@ -18,7 +18,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 class DatabaseModule {
     @Provides
-    fun provideRandomUserDao(appDatabase: AppDatabase): RandomUserDao {
+    fun provideRandomUserDao(appDatabase: AppDatabase): BookmarkedUserDao {
         return appDatabase.randomUserDao()
     }
 
@@ -28,7 +28,7 @@ class DatabaseModule {
         return Room.databaseBuilder(
             appContext,
             AppDatabase::class.java,
-            "RandomUser"
+            "BookmarkedUsers"
         )
             // We can safely drop/refresh local cache when schema changes
             .fallbackToDestructiveMigration(true)

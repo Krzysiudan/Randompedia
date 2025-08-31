@@ -7,9 +7,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
-import daniluk.randopedia.ui.randomuser.UsersListScreen
+import daniluk.randopedia.ui.list.UsersListScreen
 import daniluk.randopedia.ui.details.UserDetailsScreen
-import daniluk.randopedia.data.model.User
+import daniluk.randopedia.domain.model.User
+import daniluk.randopedia.ui.start.StartScreen
 import kotlinx.serialization.json.Json
 
 @Composable

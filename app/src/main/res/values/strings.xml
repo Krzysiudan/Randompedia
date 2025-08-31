@@ -7,4 +7,6 @@
 
     <string name="users_error_message">Oops! We couldn’t load users.</string>
     <string name="pull_to_retry">Pull to refresh to try again.</string>
+    <string name="no_saved_users_yet">No saved users yet.</string>
+    <string name="tap_the_bookmark_to_save">Tap the  bookmark to save</string>
 </resources>

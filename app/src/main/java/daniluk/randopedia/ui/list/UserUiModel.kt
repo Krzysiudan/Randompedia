@@ -1,6 +1,6 @@
-package daniluk.randopedia.ui.randomuser
+package daniluk.randopedia.ui.list
 
-import daniluk.randopedia.data.model.User
+import daniluk.randopedia.domain.model.User
 
 /**
  * UI model for the user list that carries bookmark state alongside the network item.

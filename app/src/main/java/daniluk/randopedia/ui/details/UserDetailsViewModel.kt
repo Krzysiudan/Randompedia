@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
-import daniluk.randopedia.data.RandomUserRepository
-import daniluk.randopedia.data.model.User
+import daniluk.randopedia.domain.RandomUserRepository
+import daniluk.randopedia.domain.model.User
 import kotlinx.serialization.json.Json
 
 /**
@@ -58,7 +58,7 @@ class UserDetailsViewModel @Inject constructor(
         val u = user
         if (u != null) {
             viewModelScope.launch {
-                randomUserRepository.bookmarkedIds().collectLatest { ids ->
+                randomUserRepository.bookmarkedUserIds().collectLatest { ids ->
                     val bookmarked = ids.contains(u.id)
                     _ui.update { current -> current.copy(isBookmarked = bookmarked) }
                 }
@@ -72,9 +72,9 @@ class UserDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 if (currentlyBookmarked) {
-                    randomUserRepository.removeById(u.id)
+                    randomUserRepository.removeBookmarkById(u.id)
                 } else {
-                    randomUserRepository.add(u)
+                    randomUserRepository.addBookmark(u)
                 }
             } catch (_: Throwable) {
                 // Swallow for now; could expose error state if needed

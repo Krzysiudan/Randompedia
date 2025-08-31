@@ -1,10 +1,10 @@
-package daniluk.randopedia.data.remote
+package daniluk.randopedia.data.remote.paging
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import daniluk.randopedia.data.model.User
-import daniluk.randopedia.data.model.toDomain
 import daniluk.randopedia.data.remote.api.RandomUserApi
+import daniluk.randopedia.data.remote.model.toDomain
+import daniluk.randopedia.domain.model.User
 
 class PagingUsersSource(
     private val api: RandomUserApi

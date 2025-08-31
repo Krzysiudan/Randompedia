@@ -4,16 +4,12 @@ package daniluk.randopedia.data
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Test
-import daniluk.randopedia.data.local.database.RandomUser
-import daniluk.randopedia.data.local.database.RandomUserDao
+import daniluk.randopedia.data.local.entity.BookmarkedUserEntity
+import daniluk.randopedia.data.local.database.BookmarkedUserDao
 
 /**
- * Unit tests for [DefaultRandomUserRepository].
+ * Unit tests for [RandomUserRepositoryImpl].
  */
 @OptIn(ExperimentalCoroutinesApi::class) // TODO: Remove when stable
 class DefaultRandomUserRepositoryTest {
@@ -45,11 +41,11 @@ private object FakeRandomUserApi : daniluk.randopedia.data.remote.api.RandomUser
     }
 }
 
-private class FakeRandomUserDao : RandomUserDao {
+private class FakeBookmarkedUserDao : BookmarkedUserDao {
 
-    val data = mutableListOf<RandomUser>()
+    val data = mutableListOf<BookmarkedUserEntity>()
 
-    override fun getRandomUsers(): Flow<List<RandomUser>> = flow {
+    override fun getBookmarkedUsers(): Flow<List<BookmarkedUserEntity>> = flow {
         emit(data)
     }
 
@@ -57,14 +53,14 @@ private class FakeRandomUserDao : RandomUserDao {
         emit(data.map { it.id })
     }
 
-    override suspend fun insertRandomUser(item: RandomUser) {
+    override suspend fun insertBookmarkedUser(item: BookmarkedUserEntity) {
         // Simulate REPLACE on unique id
         val idx = data.indexOfFirst { it.id == item.id }
         if (idx >= 0) data.removeAt(idx)
         data.add(0, item)
     }
 
-    override suspend fun deleteById(id: String) {
+    override suspend fun deleteBookmarkById(id: String) {
         val idx = data.indexOfFirst { it.id == id }
         if (idx >= 0) data.removeAt(idx)
     }

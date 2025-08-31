@@ -1,6 +1,6 @@
 
 
-package daniluk.randopedia.ui.randomuser
+package daniluk.randopedia.ui.list
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule

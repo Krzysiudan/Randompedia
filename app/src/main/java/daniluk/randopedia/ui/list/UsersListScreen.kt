@@ -1,4 +1,4 @@
-package daniluk.randopedia.ui.randomuser
+package daniluk.randopedia.ui.list
 
 import android.content.res.Configuration
 import androidx.compose.foundation.background
@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,7 +30,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
@@ -46,45 +44,40 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
 import daniluk.randopedia.R
-import daniluk.randopedia.data.model.User
+import daniluk.randopedia.domain.model.User
 import daniluk.randopedia.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.flow.flowOf
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.TopAppBarDefaults.enterAlwaysScrollBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.ui.Alignment
+import daniluk.randopedia.ui.list.placeholder.EmptyBookmarksPlaceholder
+import daniluk.randopedia.ui.common.shimmerBrush
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UsersListScreen(
     viewModel: UsersListViewModel = hiltViewModel(),
-    bookmarksViewModel: daniluk.randopedia.ui.bookmarks.BookmarksViewModel = hiltViewModel(),
     onUserClick: (User) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     val items = viewModel.uiPagingFlow.collectAsLazyPagingItems()
     val isRefreshing = items.loadState.refresh is LoadState.Loading
-    val bookmarkedUsers = bookmarksViewModel.users.collectAsState().value
+    val bookmarkedUsers = viewModel.bookmarkedUsers.collectAsState().value
 
-    UsersListScreen(
-        items = items,
-        bookmarks = bookmarkedUsers,
-        isRefreshing = isRefreshing,
-        onRefresh = { items.refresh() },
-        onBookmarkClicked = { user -> viewModel.onBookmarkClicked(user) },
-        onBookmarksClicked = { user -> bookmarksViewModel.onBookmarkClicked(user) },
-        onUserClick = onUserClick,
-        onBack = onBack
-    )
+        UsersListScreen(
+            items = items,
+            bookmarks = bookmarkedUsers,
+            isRefreshing = isRefreshing,
+            onRefresh = { items.refresh() },
+            onBookmarkClicked = { user -> viewModel.onBookmarkClicked(user) },
+            onUserClick = onUserClick,
+            onBack = onBack
+        )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,7 +89,6 @@ internal fun UsersListScreen(
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     onBookmarkClicked: (User) -> Unit = {},
-    onBookmarksClicked: (User) -> Unit = {},
     onUserClick: (User) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
@@ -136,52 +128,93 @@ internal fun UsersListScreen(
             }
 
             if (selectedTab == 0) {
-                PullToRefreshBox(
-                    isRefreshing = isRefreshing,
-                    onRefresh = onRefresh,
-                    modifier = Modifier
-                ) {
-                    val showSkeleton = (items.loadState.refresh is LoadState.Loading || isRefreshing) && items.itemCount == 0
-                    val isError = (items.loadState.refresh is LoadState.Error) && items.itemCount == 0
+                AllUsersTabContent(isRefreshing, onRefresh, items, onBookmarkClicked, onUserClick)
+            } else {
+                BookmarkedUsersTabContent(bookmarks, onBookmarkClicked, onUserClick)
+            }
+        }
+    }
+}
 
-                    LazyColumn {
-                        when {
-                            isError -> {
-                                val errorMessage = (items.loadState.append as? LoadState.Error)?.error?.localizedMessage
-                                item { ErrorPlaceholder(errorMessage) }
-                            }
-                            showSkeleton -> {
-                                items(8) {
-                                    SkeletonUserListItem()
-                                    Divider()
-                                }
-                            }
-                            else -> {
-                                items(items.itemCount) { i ->
-                                    items[i]?.let { ui ->
-                                        UserListItem(ui.user, onBookmarkClicked, ui, onUserClick)
-                                        Divider()
-                                    }
-                                }
-                                when (val s = items.loadState.append) {
-                                    is LoadState.Loading -> item { CircularProgressIndicator(Modifier.padding(16.dp).align(Alignment.Center)) }
-                                    else -> Unit
-                                }
-                            }
-                        }
+@Composable
+private fun BookmarkedUsersTabContent(
+    bookmarks: List<User>,
+    onBookmarkClicked: (User) -> Unit,
+    onUserClick: (User) -> Unit
+) {
+    if (bookmarks.isEmpty()){
+        EmptyBookmarksPlaceholder(
+            illustrationRes = R.drawable.empty_bookmarks,
+            title = stringResource(R.string.no_saved_users_yet),
+            hint = stringResource(R.string.tap_the_bookmark_to_save)
+        )
+
+    } else{
+        LazyColumn {
+            items(bookmarks.size) { i ->
+                val user = bookmarks[i]
+                UserListItem(
+                    user = user,
+                    onBookmarkClicked = { onBookmarkClicked(user) },
+                    ui = UserUiModel(user = user, isBookmarked = true),
+                    onUserClick = onUserClick
+                )
+                HorizontalDivider()
+            }
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun AllUsersTabContent(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    items: LazyPagingItems<UserUiModel>,
+    onBookmarkClicked: (User) -> Unit,
+    onUserClick: (User) -> Unit
+) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier
+    ) {
+        val showSkeleton =
+            (items.loadState.refresh is LoadState.Loading || isRefreshing) && items.itemCount == 0
+        val isError = (items.loadState.refresh is LoadState.Error) && items.itemCount == 0
+
+        LazyColumn {
+            when {
+                isError -> {
+                    val errorMessage =
+                        (items.loadState.append as? LoadState.Error)?.error?.localizedMessage
+                    item { ErrorPlaceholder(errorMessage) }
+                }
+
+                showSkeleton -> {
+                    items(8) {
+                        SkeletonUserListItem()
+                        HorizontalDivider()
                     }
                 }
-            } else {
-                LazyColumn {
-                    items(bookmarks.size) { i ->
-                        val user = bookmarks[i]
-                        UserListItem(
-                            user = user,
-                            onBookmarkClicked = { onBookmarksClicked(user) },
-                            ui = UserUiModel(user = user, isBookmarked = true),
-                            onUserClick = onUserClick
-                        )
-                        Divider()
+
+                else -> {
+                    items(items.itemCount) { i ->
+                        items[i]?.let { ui ->
+                            UserListItem(ui.user, onBookmarkClicked, ui, onUserClick)
+                            HorizontalDivider()
+                        }
+                    }
+                    when (val s = items.loadState.append) {
+                        is LoadState.Loading -> item {
+                            CircularProgressIndicator(
+                                Modifier
+                                    .padding(16.dp)
+                                    .align(Alignment.Center)
+                            )
+                        }
+
+                        else -> Unit
                     }
                 }
             }
@@ -229,7 +262,9 @@ fun UserListItem(
 
 @Composable
 private fun ErrorPlaceholder(errorMessage: String?) {
-    Box(modifier = Modifier.fillMaxSize().padding(32.dp)) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .padding(32.dp)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.align(Alignment.Center)
@@ -295,30 +330,7 @@ private fun sampleUsers(count: Int = 5): List<User> =
 /**
  * Simple shimmer brush for skeleton placeholders.
  */
-@Composable
-private fun shimmerBrush(): Brush {
-    val base = MaterialTheme.colorScheme.surfaceVariant
-    val colors = listOf(
-        base.copy(alpha = 0.6f),
-        base.copy(alpha = 0.3f),
-        base.copy(alpha = 0.6f)
-    )
-    val transition = rememberInfiniteTransition(label = "skeleton")
-    val translateX by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 600f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "translate"
-    )
-    return Brush.linearGradient(
-        colors = colors,
-        start = androidx.compose.ui.geometry.Offset(translateX, 0f),
-        end = androidx.compose.ui.geometry.Offset(translateX + 200f, 0f)
-    )
-}
+
 
 @Composable
 private fun SkeletonUserListItem() {
