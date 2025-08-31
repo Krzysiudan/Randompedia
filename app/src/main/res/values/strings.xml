@@ -4,4 +4,7 @@
     <string name="app_name">Randompedia</string>
     <string name="wikipedia_for_random_users">Wikipedia for random users</string>
     <string name="get_started">Get started</string>
+
+    <string name="users_error_message">Oops! We couldn’t load users.</string>
+    <string name="pull_to_retry">Pull to refresh to try again.</string>
 </resources>
