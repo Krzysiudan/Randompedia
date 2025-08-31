@@ -30,7 +30,6 @@ data class RandomUser(
 
 @Dao
 interface RandomUserDao {
-    // Existing sample, not used by new flow but keep for compatibility
     @Query("SELECT * FROM randomuser ORDER BY uid DESC LIMIT 10")
     fun getRandomUsers(): Flow<List<RandomUser>>
 

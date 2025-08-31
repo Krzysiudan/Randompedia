@@ -31,7 +31,7 @@ class DatabaseModule {
             "RandomUser"
         )
             // We can safely drop/refresh local cache when schema changes
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(true)
             .build()
     }
 }

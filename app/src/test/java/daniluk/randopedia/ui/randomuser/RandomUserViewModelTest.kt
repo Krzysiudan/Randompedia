@@ -19,7 +19,7 @@ class RandomUserViewModelTest {
     @Test
     fun onBookmarkClicked_insertsWithoutError() = runTest {
         val repo = FakeRandomUserRepository()
-        val viewModel = RandomUserViewModel(repo)
+        val viewModel = UsersListViewModel(repo)
         viewModel.onBookmarkClicked(
             daniluk.randopedia.data.model.User(
                 id = "1",

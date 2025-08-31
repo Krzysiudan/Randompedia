@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 @HiltViewModel
-class RandomUserViewModel @Inject constructor(
+class UsersListViewModel @Inject constructor(
     private val randomUserRepository: RandomUserRepository
 ) : ViewModel() {
 
@@ -38,7 +38,7 @@ class RandomUserViewModel @Inject constructor(
             )
 
     // UI Paging flow with bookmark state embedded
-    val uiPagingFlow: kotlinx.coroutines.flow.Flow<PagingData<UserUiModel>> =basePaging
+    val uiPagingFlow: Flow<PagingData<UserUiModel>> =basePaging
             .combine(bookmarkedIds) { paging, ids ->
                 paging.map { user -> UserUiModel(user = user, isBookmarked = ids.contains(user.id)) }
             }

@@ -31,6 +31,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,14 +51,16 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.TopAppBarDefaults.enterAlwaysScrollBehavior
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.Alignment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UsersListScreen(
-    viewModel: RandomUserViewModel = hiltViewModel(),
+    viewModel: UsersListViewModel = hiltViewModel(),
     onUserClick: (User) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
@@ -109,25 +113,34 @@ internal fun UsersListScreen(
             modifier = Modifier.padding(paddingValues),
         ) {
             val showSkeleton = (items.loadState.refresh is LoadState.Loading || isRefreshing) && items.itemCount == 0
-            LazyColumn {
-                if (showSkeleton) {
-                    items(8) {
-                        SkeletonUserListItem()
-                        Divider()
-                    }
-                } else {
-                    items(items.itemCount) { i ->
-                        items[i]?.let { ui ->
-                            UserListItem(ui.user, onBookmarkClicked, ui, onUserClick)
-                            Divider()
+            val isError = (items.loadState.refresh is LoadState.Error) && items.itemCount == 0
+
+
+                LazyColumn {
+                    when {
+                        isError -> {
+                            val errorMessage = (items.loadState.append as? LoadState.Error)?.error?.localizedMessage
+                            item { ErrorPlaceholder(errorMessage) }
+                        }
+                        showSkeleton -> {
+                            items(8) {
+                                SkeletonUserListItem()
+                                Divider()
+                            }
+                        }
+                        else -> {
+                            items(items.itemCount) { i ->
+                                items[i]?.let { ui ->
+                                    UserListItem(ui.user, onBookmarkClicked, ui, onUserClick)
+                                    Divider()
+                                }
+                            }
+                            when (val s = items.loadState.append) {
+                                is LoadState.Loading -> item { CircularProgressIndicator(Modifier.padding(16.dp).align(Alignment.Center)) }
+                                else -> Unit
+                            }
                         }
                     }
-                    when (val s = items.loadState.append) {
-                        is LoadState.Loading -> item { CircularProgressIndicator(Modifier.padding(16.dp)) }
-                        is LoadState.Error -> item { Text("Load more failed: ${s.error.localizedMessage}") }
-                        else -> Unit
-                    }
-                }
             }
         }
     }
@@ -169,6 +182,43 @@ private fun UserListItem(
         },
         modifier = Modifier.clickable { onUserClick(user) }
     )
+}
+
+@Composable
+private fun ErrorPlaceholder(errorMessage: String?) {
+    Box(modifier = Modifier.fillMaxSize().padding(32.dp)) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_bookmark),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(96.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(id = R.string.users_error_message),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(4.dp))
+            errorMessage?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(id = R.string.pull_to_retry),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 
@@ -296,6 +346,19 @@ private fun UsersList_Dark_Preview() {
 @Preview(showBackground = true)
 @Composable
 private fun UsersList_Loading_Preview() {
+    MyApplicationTheme {
+        UsersListScreen(
+            items = rememberPagingItems(emptyList()),
+            isRefreshing = true,
+            onRefresh = {}
+        )
+    }
+}
+
+/** Loading state simulated via isRefreshing flag */
+@Preview(showBackground = true)
+@Composable
+private fun UsersList_Error_Preview() {
     MyApplicationTheme {
         UsersListScreen(
             items = rememberPagingItems(emptyList()),
