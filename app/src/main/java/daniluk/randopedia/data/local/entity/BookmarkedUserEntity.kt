@@ -17,7 +17,6 @@ data class BookmarkedUserEntity(
     val phone: String,
     val country: String,
     val city: String,
-    val age: Int,
     val avatarUrl: String,
     val photoUrl: String
 )

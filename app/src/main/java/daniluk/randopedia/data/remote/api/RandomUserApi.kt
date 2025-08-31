@@ -12,6 +12,6 @@ interface RandomUserApi {
         @Query("page") page: Int,
         @Query("results") results: Int = 25,
         @Query("seed") seed: String = "randopedia", // keep pagination stable
-        @Query("inc") inc: String = "name,location,email,login,dob,phone,cell,picture,nat" // trim payload
+        @Query("inc") inc: String = "name,location,email,login,phone,cell,picture,nat" // trim payload
     ): RandomUserResponse
 }

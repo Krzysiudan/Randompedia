@@ -9,7 +9,6 @@ data class User(
     val email: String,
     val country: String,
     val city: String,
-    val age: Int,
     val phone: String,
     val avatarUrl: String,
     val photoUrl: String

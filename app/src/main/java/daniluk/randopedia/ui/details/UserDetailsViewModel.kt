@@ -13,7 +13,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
 import daniluk.randopedia.domain.RandomUserRepository
 import daniluk.randopedia.domain.model.User
+import daniluk.randopedia.ui.list.UsersListViewModel
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.json.Json
+import daniluk.randopedia.domain.AppError
+import daniluk.randopedia.domain.userMessage
 
 /**
  * Hilt ViewModel for the user details screen.
@@ -26,64 +33,65 @@ class UserDetailsViewModel @Inject constructor(
     private val randomUserRepository: RandomUserRepository,
 ) : ViewModel() {
 
-    private val user: User? = savedStateHandle.get<String>("user")
-        ?.let { json -> runCatching { Json.decodeFromString(User.serializer(), json) }.getOrNull() }
+    // Fail fast if missing; or make this nullable if details can handle no id.
+    private val user: User = checkNotNull(getUserFromNavigation(savedStateHandle)) { "user is required" }
 
-    private val _ui: MutableStateFlow<UserDetailsUi> = MutableStateFlow(
-        if (user != null) {
-            UserDetailsUi(
-                photoUrl = user.photoUrl,
-                name = user.fullName,
-                phone = user.phone,
-                email = user.email,
-                address = "${user.city}, ${user.country}",
+    private val _ui: MutableStateFlow<UserDetailsScreenState> = MutableStateFlow(
+            UserDetailsScreenState(
+               user = user,
                 isBookmarked = false
             )
-        } else {
-            // Fallback
-            UserDetailsUi(
-                photoUrl = samplePhotoUrl("unknown"),
-                name = "Unknown user",
-                phone = "",
-                address = "",
-                email = "",
-                isBookmarked = false
-            )
-        }
     )
-    val ui: StateFlow<UserDetailsUi> = _ui.asStateFlow()
+    val ui: StateFlow<UserDetailsScreenState> = _ui.asStateFlow()
+
+    private val _events = MutableSharedFlow<UsersListViewModel.UiEvent>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val events: SharedFlow<UsersListViewModel.UiEvent> = _events.asSharedFlow()
 
     init {
-        // Observe database bookmark ids and reflect the state in UI
-        val u = user
-        if (u != null) {
-            viewModelScope.launch {
-                randomUserRepository.bookmarkedUserIds().collectLatest { ids ->
-                    val bookmarked = ids.contains(u.id)
-                    _ui.update { current -> current.copy(isBookmarked = bookmarked) }
-                }
+        retrieveBookmarkState()
+    }
+
+    private fun retrieveBookmarkState() {
+        viewModelScope.launch {
+            randomUserRepository.bookmarkedUserIds().collectLatest { ids ->
+                val bookmarked = ids.contains(user.id)
+                _ui.update { current -> current.copy(isBookmarked = bookmarked) }
             }
         }
     }
 
     fun toggleBookmark() {
-        val u = user ?: return
         val currentlyBookmarked = ui.value.isBookmarked
         viewModelScope.launch {
-            try {
+            runCatching {
                 if (currentlyBookmarked) {
-                    randomUserRepository.removeBookmarkById(u.id)
+                    randomUserRepository.removeBookmarkById(user.id)
                 } else {
-                    randomUserRepository.addBookmark(u)
+                    randomUserRepository.addBookmark(user)
                 }
-            } catch (_: Throwable) {
-                // Swallow for now; could expose error state if needed
+            }.onFailure { t ->
+                val msg = (t as? AppError)?.userMessage() ?: "Failed to update bookmark"
+                _events.tryEmit(UsersListViewModel.UiEvent.ShowMessage(message = msg, actionLabel = "UNDO"))
             }
         }
     }
 
-    private fun samplePhotoUrl(seed: String): String {
-        val idx = (seed.hashCode().let { if (it < 0) -it else it } % 90)
-        return "https://randomuser.me/api/portraits/men/$idx.jpg"
-    }
+    private fun getUserFromNavigation(savedStateHandle: SavedStateHandle): User? =
+        savedStateHandle.get<String>("user")
+            ?.let { json ->
+                runCatching {
+                    Json.decodeFromString(
+                        User.serializer(),
+                        json
+                    )
+                }.getOrNull()
+            }
 }
+
+data class UserDetailsScreenState(
+    val user: User,
+    val isBookmarked: Boolean = false
+)

@@ -4,40 +4,53 @@ import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults.enterAlwaysScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
@@ -45,18 +58,10 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
 import daniluk.randopedia.R
 import daniluk.randopedia.domain.model.User
+import daniluk.randopedia.ui.common.shimmerBrush
+import daniluk.randopedia.ui.list.placeholder.EmptyBookmarksPlaceholder
 import daniluk.randopedia.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.flow.flowOf
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.TopAppBarDefaults.enterAlwaysScrollBehavior
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.ui.Alignment
-import daniluk.randopedia.ui.list.placeholder.EmptyBookmarksPlaceholder
-import daniluk.randopedia.ui.common.shimmerBrush
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,32 +72,51 @@ fun UsersListScreen(
 ) {
     val items = viewModel.uiPagingFlow.collectAsLazyPagingItems()
     val isRefreshing = items.loadState.refresh is LoadState.Loading
-    val bookmarkedUsers = viewModel.bookmarkedUsers.collectAsState().value
+    val bookmarkedUsers = viewModel.bookmarkedUsers.collectAsStateWithLifecycle()
 
-        UsersListScreen(
-            items = items,
-            bookmarks = bookmarkedUsers,
-            isRefreshing = isRefreshing,
-            onRefresh = { items.refresh() },
-            onBookmarkClicked = { user -> viewModel.onBookmarkClicked(user) },
-            onUserClick = onUserClick,
-            onBack = onBack
-        )
+    // Snackbar host and event collector
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { e ->
+            when (e) {
+                is UsersListViewModel.UiEvent.ShowMessage -> {
+                    snackbarHostState.showSnackbar(
+                        message = e.message,
+                        actionLabel = e.actionLabel
+                    )
+                }
+            }
+        }
+    }
+
+    UsersListScreen(
+        items = items,
+        bookmarks = bookmarkedUsers,
+        isRefreshing = isRefreshing,
+        onRefresh = { items.refresh() },
+        onBookmarkClicked = { user -> viewModel.onBookmarkClicked(user) },
+        onUserClick = onUserClick,
+        onBack = onBack,
+        snackbarHostState = snackbarHostState
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun UsersListScreen(
     items: LazyPagingItems<UserUiModel>,
-    bookmarks: List<User> = emptyList(),
+    bookmarks: State<List<User>>,
     modifier: Modifier = Modifier,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     onBookmarkClicked: (User) -> Unit = {},
     onUserClick: (User) -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    snackbarHostState: SnackbarHostState? = null
 ) {
     val scrollBehavior = enterAlwaysScrollBehavior()
+
+    val host = snackbarHostState ?: remember { SnackbarHostState() }
 
     Scaffold(
         modifier = modifier.then(Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)),
@@ -109,7 +133,8 @@ internal fun UsersListScreen(
                 },
                 scrollBehavior = scrollBehavior
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(host) }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
             // Tabs: Users | Bookmarks
@@ -138,21 +163,21 @@ internal fun UsersListScreen(
 
 @Composable
 private fun BookmarkedUsersTabContent(
-    bookmarks: List<User>,
+    bookmarks: State<List<User>>,
     onBookmarkClicked: (User) -> Unit,
     onUserClick: (User) -> Unit
 ) {
-    if (bookmarks.isEmpty()){
+    if (bookmarks.value.isEmpty()) {
         EmptyBookmarksPlaceholder(
             illustrationRes = R.drawable.empty_bookmarks,
             title = stringResource(R.string.no_saved_users_yet),
             hint = stringResource(R.string.tap_the_bookmark_to_save)
         )
 
-    } else{
+    } else {
         LazyColumn {
-            items(bookmarks.size) { i ->
-                val user = bookmarks[i]
+            items(bookmarks.value.size) { i ->
+                val user = bookmarks.value[i]
                 UserListItem(
                     user = user,
                     onBookmarkClicked = { onBookmarkClicked(user) },
@@ -187,7 +212,7 @@ private fun AllUsersTabContent(
             when {
                 isError -> {
                     val errorMessage =
-                        (items.loadState.append as? LoadState.Error)?.error?.localizedMessage
+                        (items.loadState.refresh as? LoadState.Error)?.error?.localizedMessage
                     item { ErrorPlaceholder(errorMessage) }
                 }
 
@@ -262,9 +287,11 @@ fun UserListItem(
 
 @Composable
 private fun ErrorPlaceholder(errorMessage: String?) {
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .padding(32.dp)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp)
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.align(Alignment.Center)
@@ -319,18 +346,13 @@ private fun sampleUsers(count: Int = 5): List<User> =
             country = "USA",
             city = "New York",
             phone = "(123) 456-7890",
-            age = 30 + (i % 7),
             avatarUrl = "https://randomuser.me/api/portraits/thumb/men/${(i % 90)}.jpg",
             photoUrl = "https://randomuser.me/api/portraits/men/${(i % 90)}.jpg"
         )
     }
- fun sampleUiUsers(count: Int = 5): List<UserUiModel> =
+
+fun sampleUiUsers(count: Int = 5): List<UserUiModel> =
     sampleUsers(count).mapIndexed { i, u -> UserUiModel(user = u, isBookmarked = (i % 2 == 0)) }
-
-/**
- * Simple shimmer brush for skeleton placeholders.
- */
-
 
 @Composable
 private fun SkeletonUserListItem() {
@@ -378,7 +400,8 @@ private fun SkeletonUserListItem() {
 private fun UsersList_Light_Preview() {
     MyApplicationTheme {
         UsersListScreen(
-            items = rememberPagingItems(sampleUiUsers(8))
+            items = rememberPagingItems(sampleUiUsers(8)),
+            bookmarks = remember { mutableStateOf(emptyList()) }
         )
     }
 }
@@ -392,44 +415,8 @@ private fun UsersList_Light_Preview() {
 private fun UsersList_Dark_Preview() {
     MyApplicationTheme {
         UsersListScreen(
-            items = rememberPagingItems(sampleUiUsers(8))
-        )
-    }
-}
-
-/** Loading state simulated via isRefreshing flag */
-@Preview(showBackground = true)
-@Composable
-private fun UsersList_Loading_Preview() {
-    MyApplicationTheme {
-        UsersListScreen(
-            items = rememberPagingItems(emptyList()),
-            isRefreshing = true,
-            onRefresh = {}
-        )
-    }
-}
-
-/** Loading state simulated via isRefreshing flag */
-@Preview(showBackground = true)
-@Composable
-private fun UsersList_Error_Preview() {
-    MyApplicationTheme {
-        UsersListScreen(
-            items = rememberPagingItems(emptyList()),
-            isRefreshing = true,
-            onRefresh = {}
-        )
-    }
-}
-
-/** Empty list */
-@Preview(showBackground = true)
-@Composable
-private fun UsersList_Empty_Preview() {
-    MyApplicationTheme {
-        UsersListScreen(
-            items = rememberPagingItems(emptyList())
+            items = rememberPagingItems(sampleUiUsers(8)),
+            bookmarks = remember { mutableStateOf(emptyList()) }
         )
     }
 }

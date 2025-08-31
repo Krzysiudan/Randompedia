@@ -18,7 +18,7 @@ class PagingUsersSource(
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, User> {
         val page = params.key ?: 1
-        return try {
+        return runCatching {
             val resp = api.getUsers(page = page, results = 25)
             val data = resp.results.map { it.toDomain() }
             LoadResult.Page(
@@ -26,8 +26,6 @@ class PagingUsersSource(
                 prevKey = if (page == 1) null else page - 1,
                 nextKey = if (data.isEmpty()) null else page + 1
             )
-        } catch (t: Throwable) {
-            LoadResult.Error(t)
-        }
+        }.getOrElse { t -> LoadResult.Error(t) }
     }
 }

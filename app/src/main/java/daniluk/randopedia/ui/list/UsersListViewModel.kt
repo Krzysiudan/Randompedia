@@ -6,11 +6,16 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
 import dagger.hilt.android.lifecycle.HiltViewModel
+import daniluk.randopedia.domain.AppError
 import daniluk.randopedia.domain.RandomUserRepository
 import daniluk.randopedia.domain.model.User
+import daniluk.randopedia.domain.userMessage
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -21,24 +26,34 @@ class UsersListViewModel @Inject constructor(
     private val randomUserRepository: RandomUserRepository
 ) : ViewModel() {
 
-    // 1) Build the base paging flow ONCE and cache it in the VM
+    private val _events = MutableSharedFlow<UiEvent>()
+    val events: SharedFlow<UiEvent> = _events
+
     private val basePaging: Flow<PagingData<User>> =
         randomUserRepository.userPagingFlow().cachedIn(viewModelScope)
 
-    // Flow of bookmarked ids to be overlaid on UI
-    val bookmarkedIds: StateFlow<Set<String>> =
+    private val bookmarkedIds: StateFlow<Set<String>> =
         randomUserRepository
             .bookmarkedUserIds()
+            .catch { e ->
+                val msg = (e as? AppError)?.userMessage() ?: "Failed to load bookmarks"
+                _events.emit(UiEvent.ShowMessage(msg))
+                emit(emptySet())
+            }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = emptySet()
             )
 
-    // Full list of bookmarked users to drive the Bookmarks tab
     val bookmarkedUsers: StateFlow<List<User>> =
         randomUserRepository
             .bookmarkedUsers()
+            .catch { e ->
+                val msg = (e as? AppError)?.userMessage() ?: "Failed to load bookmarks"
+                _events.emit(UiEvent.ShowMessage(msg))
+                emit(emptyList())
+            }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
@@ -54,22 +69,20 @@ class UsersListViewModel @Inject constructor(
     fun onBookmarkClicked(user: User) {
         val isBookmarked = bookmarkedIds.value.contains(user.id)
         viewModelScope.launch {
-            try {
+            runCatching {
                 if (isBookmarked) {
                     randomUserRepository.removeBookmarkById(user.id)
                 } else {
                     randomUserRepository.addBookmark(user)
                 }
-            } catch (_: Throwable) {
-                // TODO: surface error
+            }.onFailure { e ->
+                val msg = (e as? AppError)?.userMessage() ?: "Failed to update bookmark"
+                _events.emit(UiEvent.ShowMessage(msg))
             }
         }
     }
 
-}
-
-sealed interface RandomUserUiState {
-    object Loading : RandomUserUiState
-    data class Error(val throwable: Throwable) : RandomUserUiState
-    data class Success(val data: List<String>) : RandomUserUiState
+    sealed class UiEvent {
+        data class ShowMessage(val message: String, val actionLabel: String? = null) : UiEvent()
+    }
 }

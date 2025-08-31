@@ -14,7 +14,6 @@ data class UserDto(
     val location: LocationDto,
     val email: String,
     val login: LoginDto,
-    val dob: DobDto,
     val phone: String,
     val cell: String? = null,
     val picture: PictureDto,
@@ -29,5 +28,4 @@ data class LocationDto(
 )
 @Serializable data class StreetDto(val number: Int? = null, val name: String? = null)
 @Serializable data class LoginDto(val uuid: String)
-@Serializable data class DobDto(val date: String, val age: Int)
 @Serializable data class PictureDto(val large: String, val medium: String, val thumbnail: String)

@@ -27,12 +27,16 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,39 +48,52 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import daniluk.randopedia.R
+import daniluk.randopedia.domain.model.User
+import daniluk.randopedia.ui.list.UsersListViewModel.UiEvent.ShowMessage
 import daniluk.randopedia.ui.theme.MyApplicationTheme
-
-data class UserDetailsUi(
-    val photoUrl: String,
-    val name: String,
-    val email: String,
-    val phone: String,
-    val address: String,
-    val isBookmarked: Boolean
-)
 
 @Composable
 fun UserDetailsScreen(
     viewModel: UserDetailsViewModel = hiltViewModel(),
     onBack: () -> Unit = {},
 ) {
-    val ui by viewModel.ui.collectAsState()
+    val ui by viewModel.ui.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { e ->
+            when (e) {
+                is ShowMessage -> {
+                    snackbarHostState.showSnackbar(
+                        message = e.message,
+                        actionLabel = e.actionLabel
+                    )
+                }
+            }
+        }
+    }
+
     UserDetailsScreen(
-        ui = ui,
+        state = ui,
         onBack = onBack,
-        onToggleBookmark = { viewModel.toggleBookmark() }
+        onToggleBookmark = { viewModel.toggleBookmark() },
+        snackbarHostState = snackbarHostState
     )
 }
 
 @Composable
 fun UserDetailsScreen(
-    ui: UserDetailsUi,
+    state: UserDetailsScreenState,
     onBack: () -> Unit,
     onToggleBookmark: () -> Unit,
+    snackbarHostState: SnackbarHostState? = null,
 ) {
     val bg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+
+    val host = snackbarHostState ?: remember { SnackbarHostState() }
 
     Scaffold(
         containerColor = bg,
@@ -93,20 +110,21 @@ fun UserDetailsScreen(
                 },
                 actions = {
                     IconToggleButton(
-                        checked = ui.isBookmarked,
+                        checked = state.isBookmarked,
                         onCheckedChange = { onToggleBookmark() }
                     ) {
                         Icon(
-                            painter = if (ui.isBookmarked) painterResource(R.drawable.ic_bookmark_filled) else painterResource(
+                            painter = if (state.isBookmarked) painterResource(R.drawable.ic_bookmark_filled) else painterResource(
                                 R.drawable.ic_bookmark
                             ),
-                            tint = if (ui.isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (state.isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             contentDescription = "Bookmark"
                         )
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(host) }
     ) { padding ->
         Column(
             Modifier
@@ -123,7 +141,7 @@ fun UserDetailsScreen(
                 val placeholderPainter =
                     rememberVectorPainter(Icons.Outlined.AccountCircle)
                 AsyncImage(
-                    model = ui.photoUrl,
+                    model = state.user.photoUrl,
                     contentDescription = "User avatar",
                     contentScale = ContentScale.Crop,
                     placeholder = placeholderPainter,
@@ -142,10 +160,10 @@ fun UserDetailsScreen(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            painter = if (ui.isBookmarked) painterResource(R.drawable.ic_bookmark_filled) else painterResource(
+                            painter = if (state.isBookmarked) painterResource(R.drawable.ic_bookmark_filled) else painterResource(
                                 R.drawable.ic_bookmark
                             ),
-                            tint = if (ui.isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (state.isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             contentDescription = "Bookmark"
                         )
                     }
@@ -155,7 +173,7 @@ fun UserDetailsScreen(
             Spacer(Modifier.height(16.dp))
 
             Text(
-                text = ui.name,
+                text = state.user.fullName,
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center
             )
@@ -164,17 +182,17 @@ fun UserDetailsScreen(
 
             DetailRow(
                 icon = Icons.Outlined.Call,
-                text = ui.phone
+                text = state.user.phone
             )
             Spacer(Modifier.height(12.dp))
             DetailRow(
                 icon = Icons.Outlined.Email,
-                text = ui.email
+                text = state.user.email
             )
             Spacer(Modifier.height(12.dp))
             DetailRow(
                 icon = Icons.Outlined.Place,
-                text = ui.address
+                text = "${state.user.city}, ${state.user.country}"
             )
         }
     }
@@ -208,12 +226,17 @@ private fun DetailRow(
 
 /* -------------------- PREVIEWS -------------------- */
 
-private fun sampleUi(bookmarked: Boolean) = UserDetailsUi(
-    photoUrl = "https://randomuser.me/api/portraits/women/44.jpg",
-    name = "Floyd Miles",
-    phone = "(319) 555-0115",
-    address = "4517 Washington Ave. Manchester,\nKentucky 39495",
-    email = "john.c.calhoun@examplepetstore.com",
+private fun sampleUi(bookmarked: Boolean) = UserDetailsScreenState(
+    user = User(
+        photoUrl = "https://randomuser.me/api/portraits/women/44.jpg",
+        fullName = "Floyd Miles",
+        phone = "(319) 555-0115",
+        city = "4517 Washington Ave. Manchester",
+        country = "United States",
+        email = "john.c.calhoun@examplepetstore.com",
+        id = "1234567890",
+        avatarUrl = "exampleUrl",
+    ),
     isBookmarked = bookmarked
 )
 
@@ -222,7 +245,7 @@ private fun sampleUi(bookmarked: Boolean) = UserDetailsUi(
 private fun Details_Light_NotBookmarked() {
     MyApplicationTheme {
         UserDetailsScreen(
-            ui = sampleUi(bookmarked = false),
+            state = sampleUi(bookmarked = false),
             onBack = {},
             onToggleBookmark = {}
         )
@@ -234,7 +257,7 @@ private fun Details_Light_NotBookmarked() {
 private fun Details_Dark_Bookmarked() {
     MyApplicationTheme {
         UserDetailsScreen(
-            ui = sampleUi(bookmarked = true),
+            state = sampleUi(bookmarked = true),
             onBack = {},
             onToggleBookmark = {}
         )
