@@ -84,7 +84,7 @@ class UsersListViewModelTest {
 
     @Test
     fun emitsEvent_whenBookmarkedIdsFlowErrors() = runTest {
-        val errorMessage = AppError.Storage().let { it.userMessage() }
+        val errorMessage = AppError.Storage().userMessage()
         val repo = mockk<RandomUserRepository>()
         every { repo.userPagingFlow() } returns flowOf(PagingData.empty())
         every { repo.bookmarkedUserIds() } returns flow<Set<String>> { throw AppError.Storage() }
