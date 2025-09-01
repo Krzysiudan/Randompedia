@@ -1,7 +1,18 @@
-Randopedia – Architecture Decisions Record (ADR)
+Randompedia – Architecture Decisions Record (ADR)
+
 
 Overview
 Randopedia is a small, pragmatic Android app built to demonstrate modern, production‑ready architecture with a focus on clarity, testability, and developer experience. The app fetches people from RandomUser API with paging, allows bookmarking users locally, and renders the UI with Jetpack Compose.
+
+# UI
+<img width="200" height="400" alt="image" src="https://github.com/user-attachments/assets/d783f9cc-38ed-4aeb-9f96-8fff8b083a59" />
+<img width="200" height="400" alt="image" src="https://github.com/user-attachments/assets/d3f9c657-d0fe-4398-8079-96bfed69f49c" />
+<img width="200" height="400" alt="image" src="https://github.com/user-attachments/assets/269f1ed6-37f3-493e-aa58-08ec91cc4566" />
+<img width="200" height="400" alt="image" src="https://github.com/user-attachments/assets/6b04a872-d124-4d96-b1a0-857352ada6dc" />
+
+
+
+
 
 Architectural Goals
 - Maintainability: Clear boundaries, single responsibility, limited coupling.
