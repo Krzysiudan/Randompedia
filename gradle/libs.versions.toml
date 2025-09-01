@@ -21,6 +21,7 @@ kotlinxSerialization = "1.7.3"
 paging = "3.3.6"
 coil = "3.3.0"
 lottie = "6.6.7"
+mockk = "1.13.12"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
@@ -63,6 +64,7 @@ coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie"}
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie"}
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
